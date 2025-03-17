@@ -72,6 +72,9 @@ inputs:
   repo-cache-key-suffix:
     description: 'String to append to repo-level cache key'
     default: 1
+  repo-save-key-suffix:
+    description: 'Save a repo-level cache entry different from the restored one'
+    default: ''
   cache-spack-lock:
     description: 'Cache spack.lock to speed up concretization'
     default: true
@@ -186,7 +189,7 @@ runs:
       if: always() && inputs.use-repo-cache == 'true' && steps.restore-repo-cache.outputs.cache-hit != 'true'
       with:
         path: ${{ github.workspace }}/spack-build-cache
-        key: repo-cache-${{ inputs.repo-cache-key-suffix }}
+        key: repo-cache-${{ inputs.repo-cache-key-suffix }}${{ inputs.repo-save-key-suffix }}
 
     - name: "Generate unique ID"
       if: ( failure() && inputs.upload-artifacts == 'on-failure' ) || inputs.upload-artifacts == 'always'
