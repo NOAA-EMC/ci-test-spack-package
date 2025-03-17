@@ -181,7 +181,7 @@ runs:
 
     - name: "Save repo-level cache"
       uses: actions/cache/save@v4
-      if: always() && inputs.use-repo-cache == 'true'
+      if: always() && inputs.use-repo-cache == 'true' && steps.restore-repo-cache.output.cache-hit != 'true'
       with:
         path: ${{ github.workspace }}/spack-build-cache
         key: repo-cache-${{ inputs.repo-cache-key-suffix }}
