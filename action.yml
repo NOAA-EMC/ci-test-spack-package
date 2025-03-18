@@ -83,6 +83,9 @@ inputs:
     default: true
   test-flag:
     default: '--test root'
+  save-repo-cache:
+    description: 'Save repo cache (use-repo-cache must be true)
+    default: true
 
 runs:
   using: "composite"
@@ -186,7 +189,7 @@ runs:
 
     - name: "Save repo-level cache"
       uses: actions/cache/save@v4
-      if: always() && inputs.use-repo-cache == 'true' && steps.restore-repo-cache.outputs.cache-hit != 'true'
+      if: always() && inputs.use-repo-cache == 'true' && steps.restore-repo-cache.outputs.cache-hit != 'true' && inputs.save-repo-cache == 'true'
       with:
         path: ${{ github.workspace }}/spack-build-cache
         key: repo-cache-${{ inputs.repo-cache-key-suffix }}${{ inputs.repo-save-key-suffix }}
