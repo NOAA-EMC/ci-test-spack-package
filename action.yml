@@ -84,7 +84,7 @@ inputs:
   spack-test-flag:
     default: '--test root'
   save-repo-cache:
-    description: 'Save repo cache (use-repo-cache must be true)
+    description: 'Save repo cache (use-repo-cache must be true)'
     default: true
 
 runs:
