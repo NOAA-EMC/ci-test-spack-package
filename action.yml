@@ -81,7 +81,7 @@ inputs:
   test-package-load:
     description: 'Run "spack load <package-name>" to verify setup_run_environment() does not fail'
     default: true
-  test-flag:
+  spack-test-flag:
     default: '--test root'
   save-repo-cache:
     description: 'Save repo cache (use-repo-cache must be true)
@@ -176,7 +176,7 @@ runs:
         cat ${SPACK_ENV}/spack.yaml
         echo "========="
         set +e
-        spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.test-flag }} --no-check-signature
+        spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature
         rc=$?
         set -e
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
