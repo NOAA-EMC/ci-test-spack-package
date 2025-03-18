@@ -151,7 +151,7 @@ runs:
         spack env activate test
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
         spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
-        spack compiler find ${{ inputs.spack-compiler }}
+        spack compiler find
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
           for package in ${{ inputs.spack-externals }}; do
