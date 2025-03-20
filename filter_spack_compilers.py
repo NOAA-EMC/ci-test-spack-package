@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Main copy of this script maintained at https://github.com/AlexanderRichert-NOAA/filter-spack-compilers
 
 import argparse
 import os
