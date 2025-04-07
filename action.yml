@@ -160,6 +160,9 @@ runs:
         spack config add "packages:all:prefer:['target=${{ inputs.cpu-target }}']"
         spack config add "packages:compiler-wrapper:require:'target=${{ inputs.cpu-target }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
+        # Misc. package constraints:
+        spack config add "packages:hwloc:require:'~pci'"
+        spack config add "packages:openssl:require:'certs=system'"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
           for package in ${{ inputs.spack-externals }}; do
             spack config add "packages:$package:buildable:false"
