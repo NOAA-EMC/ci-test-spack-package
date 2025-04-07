@@ -172,7 +172,7 @@ runs:
         if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
-        spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        #spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
@@ -181,7 +181,7 @@ runs:
         cat ${SPACK_ENV}/spack.yaml
         echo "========="
         set +e
-        spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature
+        spack install --use-buildcache only --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature
         rc=$?
         set -e
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
