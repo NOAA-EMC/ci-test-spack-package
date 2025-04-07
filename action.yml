@@ -157,6 +157,8 @@ runs:
           ${{ github.action_path }}/filter_spack_compilers.py --keep-only $SPACK_ENV/spack.yaml ${{ inputs.spack-compiler }}
         fi
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
+        spack config add "packages:all:prefer:['target=${{ inputs.cpu-target }}']"
+        spack config add "packages:compiler-wrapper:require:'target=${{ inputs.cpu-target }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
           for package in ${{ inputs.spack-externals }}; do
