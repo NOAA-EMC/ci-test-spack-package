@@ -39,7 +39,7 @@ inputs:
   spack-ref:
     description: 'Spack tag/branch/commit to use'
     required: false
-    default: 'b4ffde65f46336ab88eb53be808477a3936bae11'
+    default: 'd00b05b71e0ab55304f1cc1c46ff4c338861a690'
   cpu-target:
     description: 'Spack CPU target'
     required: false
