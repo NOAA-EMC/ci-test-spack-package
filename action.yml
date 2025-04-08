@@ -150,19 +150,15 @@ runs:
         spack env create --without-view test
         spack env activate test
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
-        spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
+        spack add ${{ inputs.package-name }}@${{ inputs.package-version }} %${{ inputs.spack-compiler }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }} %${{ inputs.spack-compiler }}
         spack compiler find
         # If compiler version is specified, remove all other compilers from spack.yaml
         if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
           ${{ github.action_path }}/filter_spack_compilers.py --keep-only $SPACK_ENV/spack.yaml ${{ inputs.spack-compiler }}
         fi
-        spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
-        spack config add "packages:all:prefer:['target=${{ inputs.cpu-target }}']"
-        spack config add "packages:compiler-wrapper:require:'target=${{ inputs.cpu-target }}'"
+        #spack config add "packages:all:require:'%${{ inputs.spack-compiler }}'"
+        spack config add "packages:all:target:x86_64"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
-        # Misc. package constraints:
-        spack config add "packages:hwloc:require:'~pci'"
-        spack config add "packages:openssl:require:'certs=system'"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
           for package in ${{ inputs.spack-externals }}; do
             spack config add "packages:$package:buildable:false"
