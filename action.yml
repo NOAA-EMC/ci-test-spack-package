@@ -185,7 +185,7 @@ runs:
         echo -e "spack.yaml:\n========="
         cat ${SPACK_ENV}/spack.yaml
         echo "========="
-        spack concretize 2> >(tee ${GITHUB_WORKSPACE}/spack-concretize-err.log >&2) 1> >(tee ${GITHUB_WORKSPACE}/spack-concretize-out.log)
+        spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
