@@ -179,17 +179,17 @@ runs:
           fi
           spack external find $(echo ${{ inputs.spack-externals }} | sed "s:\bopenblas\b::g")
         fi
-        if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
+        if [[ "${{ inputs.cache-spack-lock }}" == true && -f ${{ inputs.spack-root }}/spack.lock ]]; then
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
-        spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        echo -e "spack.yaml:\n========="
+        cat ${SPACK_ENV}/spack.yaml
+        echo "========="
+        spack concretize 2> >(tee ${GITHUB_WORKSPACE}/spack-concretize-err.log >&2) 1> >(tee ${GITHUB_WORKSPACE}/spack-concretize-out.log)
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
         cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
-        echo -e "spack.yaml:\n========="
-        cat ${SPACK_ENV}/spack.yaml
-        echo "========="
         set +e
         spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature
         rc=$?
