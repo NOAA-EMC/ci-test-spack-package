@@ -86,6 +86,9 @@ inputs:
   save-repo-cache:
     description: 'Save repo cache (use-repo-cache must be true)'
     default: true
+  set-x:
+    description: 'Enable set -x'
+    default: false
 
 runs:
   using: "composite"
@@ -135,6 +138,9 @@ runs:
     - name: "Do Spack installation and tests"
       shell: spack-bash {0}
       run: |
+        if [ ${{ inputs.set-x }} == true ]; then
+          set -x
+        fi
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
           spack mirror add repo-build-cache $GITHUB_WORKSPACE/spack-build-cache
         fi
