@@ -162,9 +162,9 @@ runs:
         fi
         spack compiler find
         # If compiler version is specified, remove all other compilers from spack.yaml
-        if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
-          ${{ github.action_path }}/filter_spack_compilers.py --keep-only $SPACK_ENV/spack.yaml ${{ inputs.spack-compiler }}
-        fi
+        #if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
+        #  ${{ github.action_path }}/filter_spack_compilers.py --keep-only $SPACK_ENV/spack.yaml ${{ inputs.spack-compiler }}
+        #fi
         #spack config add "packages:all:require:'%${{ inputs.spack-compiler }}'"
         spack config add "packages:all:target:[x86_64]"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
