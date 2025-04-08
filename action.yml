@@ -156,7 +156,10 @@ runs:
         spack env create --without-view test
         spack env activate test
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
-        spack add ${{ inputs.package-name }}@${{ inputs.package-version }} %${{ inputs.spack-compiler }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }} %${{ inputs.spack-compiler }}
+        spack add ${{ inputs.package-name }}@${{ inputs.package-version }} %${{ inputs.spack-compiler }} ${{ inputs.package-variants }}
+        if [ ! -z "${{ inputs.dependents-to-test }}" ]; then
+          spack add ${{ inputs.dependents-to-test }} %${{ inputs.spack-compiler }}
+        fi
         spack compiler find
         # If compiler version is specified, remove all other compilers from spack.yaml
         if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
