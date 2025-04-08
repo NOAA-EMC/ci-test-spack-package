@@ -39,7 +39,7 @@ inputs:
   spack-ref:
     description: 'Spack tag/branch/commit to use'
     required: false
-    default: '66622ec4d0903123de65974516ba7e5480206be1' # revert to 'develop' once self.build_directory regression is resolved
+    default: 'a9c879d53e758f67cdbf4cec919425cb2a3a1082'
   cpu-target:
     description: 'Spack CPU target'
     required: false
