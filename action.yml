@@ -39,7 +39,7 @@ inputs:
   spack-ref:
     description: 'Spack tag/branch/commit to use'
     required: false
-    default: 'develop'
+    default: '50dbf5dac445f19a86ece28c1def886be118c392' # 50dbf5d=commit prior to compilers-as-nodes changes
   cpu-target:
     description: 'Spack CPU target'
     required: false
