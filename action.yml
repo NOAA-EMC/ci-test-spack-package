@@ -198,9 +198,9 @@ runs:
         set -e
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
           if [ "${{ inputs.dependencies-only }}" == true ]; then
-            spack buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache
+            spack buildcache push --unsigned --update-index --with-build-dependencies $GITHUB_WORKSPACE/spack-build-cache $(spack find --format {name})
           else
-            spack buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
+            spack buildcache push --unsigned --update-index --with-build-dependencies --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
           fi
         fi
         if [[ ( "${{ inputs.test-package-load }}" == true ) && ( "${{ inputs.dependencies-only }}" != true ) ]]; then
