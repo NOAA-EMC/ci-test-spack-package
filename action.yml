@@ -89,6 +89,9 @@ inputs:
   dependencies-only:
     description: 'Only install dependencies for target package (cannot be used with test-dependents)'
     default: false
+  spack-view:
+    description: 'Additionally create a Spack view with link_type:copy (this will always be done when dependencies-only==true)'
+    default: false
 
 runs:
   using: "composite"
@@ -192,6 +195,10 @@ runs:
         echo "========="
         set +e
         if [ "${{ inputs.dependencies-only }}" == true ]; then onlydepsflag="--only dependencies"; fi
+        if [ "${{ inputs.spack-view }}" == true || "${{ inputs.dependencies-only }}" == true ]; then
+          spack config add "view:default:root:${{ github.workspace }}/nceplibs"
+          spack config add "view:default:link_type:copy"
+        fi
         spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $onlydepsflag
         rc=$?
         set -e
