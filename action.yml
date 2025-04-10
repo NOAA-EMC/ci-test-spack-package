@@ -193,7 +193,7 @@ runs:
         if [ "${{ inputs.dependencies-only }}" == true ]; then onlydepsflag="--only dependencies"; fi
         if [ "${{ inputs.spack-view }}" == true || "${{ inputs.dependencies-only }}" == true ]; then
           sed -i 's|view: \w\+||' $SPACK_ENV/spack.yaml
-          echo -e "  view:\n    default:\n      root: ${{ github.workspace }}/nceplibs\n      link_type: copy"
+          echo -e "  view:\n    default:\n      root: ${{ github.workspace }}/nceplibs\n      link_type: copy" >> $SPACK_ENV/spack.yaml
         else
           spack config add "view:false"
         fi
