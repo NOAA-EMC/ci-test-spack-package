@@ -172,15 +172,7 @@ runs:
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
-          for package in ${{ inputs.spack-externals }}; do
-            spack config add "packages:$package:buildable:false"
-          done
-          if [[ (" ${{ inputs.spack-externals }} " =~ " openblas ") && ( ${{ runner.os }} == Linux ) ]]; then
-            spack external find --path /usr/lib/x86_64-linux-gnu/openblas-serial openblas
-            spack config add "packages:lapack:buildable:false"
-            spack config add "packages:blas:buildable:false"
-          fi
-          spack external find $(echo ${{ inputs.spack-externals }} | sed "s:\bopenblas\b::g")
+          spack external find --not-buildable --path /usr --path /usr/lib/x86_64-linux-gnu/openblas-serial ${{ inputs.spack-externals }}
         fi
         if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
