@@ -86,6 +86,9 @@ inputs:
   save-repo-cache:
     description: 'Save repo cache (use-repo-cache must be true)'
     default: true
+  dependencies-only:
+    description: 'Only install dependencies for target package (cannot be used with test-dependents)'
+    default: false
 
 runs:
   using: "composite"
@@ -93,13 +96,13 @@ runs:
 
     - name: "Get the updated code if needed"
       uses: actions/checkout@v4
-      if: inputs.repo-dir == 'auto'
+      if: inputs.repo-dir == 'auto' && inputs.dependencies-only != 'true'
       with: 
         path: spack-devpkg-${{ inputs.package-name }}
         submodules: recursive
 
     - name: "Point to existing code if needed"
-      if: inputs.repo-dir != 'auto'
+      if: inputs.repo-dir != 'auto' && inputs.dependencies-only != 'true'
       shell: bash
       run: |
         ln -s ${{ inputs.repo-dir }} spack-devpkg-${{ inputs.package-name }}
@@ -146,11 +149,18 @@ runs:
         fi
         spack mirror remove github-actions-buildcache
         spack mirror list
-        #spack buildcache list --allarch # for debugging
+        if [ "${{ github.event.inputs.debug }}" == true ]; then
+          spack buildcache list --allarch # for debugging
+        fi
         spack env create --without-view test
         spack env activate test
-        spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
-        spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
+        if [ "${{ inputs.dependencies-only }}" != true ]; then
+          spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
+        fi
+        spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }}
+        if [ "${{ inputs.dependencies-only }}" != true ]; then
+          spack add ${{ inputs.dependents-to-test }}
+        fi
         spack compiler find
         # If compiler version is specified, remove all other compilers from spack.yaml
         if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
@@ -181,15 +191,14 @@ runs:
         cat ${SPACK_ENV}/spack.yaml
         echo "========="
         set +e
-        spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature
+        if [ "${{ inputs.dependencies-only }}" == true ]; then onlydepsflag="--only dependencies"; fi
+        spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $onlydepsflag
         rc=$?
         set -e
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
           spack buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
         fi
-        if [ ${{ inputs.test-package-load }} == true ]; then
-          spack load ${{ inputs.package-name }}
-        fi
+        if [ "${{ inputs.test-package-load }}" == true && "${{ inputs.dependencies-only }}" != true ]]; then spack load ${{ inputs.package-name }}; fi
         exit $rc
 
     - name: "Save repo-level cache"
