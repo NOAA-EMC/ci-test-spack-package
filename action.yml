@@ -155,7 +155,7 @@ runs:
         if [ "${{ github.event.inputs.debug }}" == true ]; then
           spack buildcache list --allarch # for debugging
         fi
-        spack env create --without-view test
+        spack env create test
         spack env activate test
         if [ "${{ inputs.dependencies-only }}" != true ]; then
           spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
@@ -196,8 +196,10 @@ runs:
         set +e
         if [ "${{ inputs.dependencies-only }}" == true ]; then onlydepsflag="--only dependencies"; fi
         if [ "${{ inputs.spack-view }}" == true || "${{ inputs.dependencies-only }}" == true ]; then
-          spack config add "view:default:root:${{ github.workspace }}/nceplibs"
-          spack config add "view:default:link_type:copy"
+          sed -i 's|view: \w\+||' $SPACK_ENV/spack.yaml
+          echo -e "  view:\n    default:\n      root: ${{ github.workspace }}/nceplibs\n      link_type: copy"
+        else
+          spack config add "view:false"
         fi
         spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $onlydepsflag
         rc=$?
