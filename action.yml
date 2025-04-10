@@ -197,7 +197,11 @@ runs:
         rc=$?
         set -e
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
-          spack buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
+          if [ "${{ inputs.dependencies-only }}" == true ]; then
+            spack buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache
+          else
+            spack buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
+          fi
         fi
         if [[ ( "${{ inputs.test-package-load }}" == true ) && ( "${{ inputs.dependencies-only }}" != true ) ]]; then
           spack load ${{ inputs.package-name }}
