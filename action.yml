@@ -190,10 +190,6 @@ runs:
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
         cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
-        echo -e "spack.yaml:\n========="
-        cat ${SPACK_ENV}/spack.yaml
-        echo "========="
-        set +e
         if [ "${{ inputs.dependencies-only }}" == true ]; then onlydepsflag="--only dependencies"; fi
         if [ "${{ inputs.spack-view }}" == true || "${{ inputs.dependencies-only }}" == true ]; then
           sed -i 's|view: \w\+||' $SPACK_ENV/spack.yaml
@@ -201,6 +197,10 @@ runs:
         else
           spack config add "view:false"
         fi
+        echo -e "spack.yaml:\n========="
+        cat ${SPACK_ENV}/spack.yaml
+        echo "========="
+        set +e
         spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $onlydepsflag
         rc=$?
         set -e
