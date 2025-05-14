@@ -92,7 +92,7 @@ runs:
   steps:
 
     - name: "Get the updated code if needed"
-      uses: actions/checkout@v4
+      uses: github.com/actions/checkout@v4
       if: inputs.repo-dir == 'auto'
       with: 
         path: spack-devpkg-${{ inputs.package-name }}
