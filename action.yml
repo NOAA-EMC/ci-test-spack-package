@@ -146,7 +146,7 @@ runs:
         fi
         spack mirror remove github-actions-buildcache
         spack mirror list
-        #spack buildcache list --allarch # for debugging
+        spack buildcache list --allarch |& sed 's|^|::debug::|'
         spack env create --without-view test
         spack env activate test
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
