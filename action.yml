@@ -39,7 +39,7 @@ inputs:
   spack-ref:
     description: 'Spack tag/branch/commit to use'
     required: false
-    default: 'a9c879d53e758f67cdbf4cec919425cb2a3a1082'
+    default: 'develop'
   cpu-target:
     description: 'Spack CPU target'
     required: false
@@ -109,6 +109,9 @@ runs:
       with:
         ref: ${{ inputs.spack-ref }}
         path: ${{ inputs.spack-root }}
+
+    - name: "Get spack-helpers"
+      uses: NOAA-EMC/spack-helpers@develop
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
