@@ -155,10 +155,7 @@ runs:
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
         spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
         spack compiler find
-        # If compiler version is specified, remove all other compilers from spack.yaml
-        if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
-          spack filter-compilers ${{ inputs.spack-compiler }} --keep-only
-        fi
+        # Remove all other compilers from spack.yaml
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
@@ -172,12 +169,13 @@ runs:
           fi
           spack external find $(echo ${{ inputs.spack-externals }} | sed "s:\bopenblas\b::g")
         fi
+        spack filter-compilers ${{ inputs.spack-compiler }} --keep-only
         if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
         spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
         ## Validation steps
-        spack validate compilers ${{ inputs.spack-compiler }} gcc
+        spack validate compilers ${{ inputs.spack-compiler }}
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
