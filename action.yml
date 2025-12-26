@@ -155,10 +155,8 @@ runs:
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
         spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
         spack compiler find
-        # If compiler version is specified, remove all other compilers from spack.yaml
-        if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
-          spack filter-compilers ${{ inputs.spack-compiler }} --keep-only
-        fi
+        # Remove all other compilers from spack.yaml
+        spack filter-compilers ${{ inputs.spack-compiler }} --keep-only
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
