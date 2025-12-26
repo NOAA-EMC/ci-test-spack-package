@@ -157,7 +157,7 @@ runs:
         spack compiler find
         # If compiler version is specified, remove all other compilers from spack.yaml
         if [[ ${{ inputs.spack-compiler }} =~ '@' ]]; then
-          ${{ github.action_path }}/filter_spack_compilers.py --keep-only $SPACK_ENV/spack.yaml ${{ inputs.spack-compiler }}
+          spack filter-compilers ${{ inputs.spack-compiler }} --keep-only
         fi
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
@@ -176,6 +176,8 @@ runs:
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
         spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        ## Validation steps
+        spack validate compilers ${{ inputs.spack-compiler }} gcc
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
