@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  test-action:
+    name: Test Spack Package Action
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout action repository
+        uses: actions/checkout@v4
+        with:
+          path: action
+      
+      - name: Checkout test package (bacio)
+        uses: actions/checkout@v4
+        with:
+          repository: NOAA-EMC/NCEPLIBS-bacio
+          path: test-package
+          submodules: recursive
+      
+      - name: Test action with bacio package
+        uses: ./action
+        with:
+          package-name: bacio
+          package-version: develop
+          repo-dir: ${{ github.workspace }}/test-package
+          parallel-jobs: 2
+          spack-compiler: gcc@13
