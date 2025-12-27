@@ -138,6 +138,7 @@ runs:
     - name: "Do Spack installation and tests"
       shell: spack-bash {0}
       run: |
+        ## Setup build caches and mirrors
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
           spack mirror add repo-build-cache $GITHUB_WORKSPACE/spack-build-cache
         fi
@@ -150,14 +151,20 @@ runs:
         spack mirror remove github-actions-buildcache
         spack mirror list
         spack buildcache list --allarch |& sed 's|^|::debug::|'
+
+        ## Create and configure test environment
         spack env create --without-view test
         spack env activate test
+        # Point to the modified code
         spack develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
         spack add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
+
+        ## Configure compiler and target settings
         spack compiler find
-        # Remove all other compilers from spack.yaml
         spack config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
         spack config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
+
+        ## Configure external packages if specified
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
           for package in ${{ inputs.spack-externals }}; do
             spack config add "packages:$package:buildable:false"
@@ -169,12 +176,22 @@ runs:
           fi
           spack external find $(echo ${{ inputs.spack-externals }} | sed "s:\bopenblas\b::g")
         fi
-        spack filter-compilers ${{ inputs.spack-compiler }} --keep-only
+
+        ## Filter out unwanted compilers
+        if [[ "${{ inputs.spack-compiler }}" =~ intel-oneapi ]]; then
+          alsogcc=gcc
+        fi
+        spack filter-compilers ${{ inputs.spack-compiler }} $alsogcc --keep-only
+
+        ## Restore cached lock file if available
         if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
+
+        ## Concretize the environment
         spack concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
-        ## Validation steps
+
+        ## Validate configuration and display results
         spack validate compilers ${{ inputs.spack-compiler }}
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
@@ -183,10 +200,14 @@ runs:
         echo -e "spack.yaml:\n========="
         cat ${SPACK_ENV}/spack.yaml
         echo "========="
+
+        ## Install, including running install-time tests ('make test' etc.)
         set +e
         spack install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature
         rc=$?
         set -e
+
+        ## Cache built packages and verify the package loads
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
           spack buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
         fi
