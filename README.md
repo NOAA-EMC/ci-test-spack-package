@@ -1,5 +1,7 @@
 # GitHub CI Action: test-spack-package
 
+![Test action](https://github.com/NOAA-EMC/ci-test-spack-package/actions/workflows/test-action.yml/badge.svg)
+
 This repository provides a GitHub Action for building and testing packages
 through the [Spack package manager](https://spack.io). It achieves this by
 [setting up Spack](https://github.com/spack/setup-spack) and setting up the
