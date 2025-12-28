@@ -95,6 +95,10 @@ inputs:
     description: "Only install the requested spec's dependencies"
     default: false
     type: boolean
+  package-only:
+    description: "Only install the requested spec (no deps; only useful for CI testing)"
+    default: false
+    type: boolean
 
 runs:
   using: "composite"
@@ -222,8 +226,10 @@ runs:
         ## Install, including running install-time tests ('make test' etc.)
         set +e
         if [ "$RUNNER_DEBUG" == "1" ]; then verboseflag="--verbose"; fi
-        if [ "${{ inputs.dependencies-only }}" == "true" ]; then dependenciesonlyflag="--only dependencies" fi
-        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $dependenciesonlyflag
+        if [ "${{ inputs.dependencies-only }}" == "true" ]; then onlyflag="--only dependencies" fi
+        if [ "${{ inputs.package-only }}" == "true" ]; then onlyflag="--only package" fi
+
+        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag
 
         rc=$?
         set -e

@@ -36,3 +36,25 @@ jobs:
           repo-dir: ${{ github.workspace }}/test-package
           parallel-jobs: 2
           spack-compiler: gcc@13
+          dependencies-only: true
+
+      - name: Ensure only dependencies were installed
+        shell: spack-bash {0}
+        run: |
+          spack env activate test
+          set +e
+          spack find w3emc
+          if [ $? -eq 0 ]; then
+            echo "Error: w3emc was installed on deps-only step!"
+            exit 1
+          fi
+
+        - name: Test action with w3emc package
+        uses: ./action
+        with:
+          package-name: w3emc
+          package-version: develop
+          repo-dir: ${{ github.workspace }}/test-package
+          parallel-jobs: 2
+          spack-compiler: gcc@13
+          package-only: true
