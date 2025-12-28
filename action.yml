@@ -238,7 +238,7 @@ runs:
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
           spack_exe buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
         fi
-        if [ ${{ inputs.test-package-load }} == true ]; then
+        if [[ ${{ inputs.test-package-load }} == true && "${{ inputs.dependencies-only }}" == "false" ]]; then
           spack_exe load ${{ inputs.package-name }}
         fi
         exit $rc
