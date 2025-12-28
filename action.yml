@@ -141,7 +141,7 @@ runs:
         ## Define spack wrapper function
         spack_exe() {
           if [ "$RUNNER_DEBUG" == "1" ]; then
-            spack --debug "$@" 2>&1 | perl -pe 's|^([^=]*==>[^\[]+\[\d{4}-\d{1,2}-\d{1,2}-\d\d:\d\d:\d\d\.\d{6}\])|::debug::\1|'
+            spack --debug "$@" 2>&1 | perl -pe 's|^([^=]*==>.+?\[\d{4}-\d{1,2}-\d{1,2}-\d\d:\d\d:\d\d\.\d{6}\])|::debug::\1|'
           else
             spack "$@"
           fi
