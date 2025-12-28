@@ -1,4 +1,4 @@
-name: 'CI: Test test-spack-package action'
+name: 'CI: Test ci-test-spack-package action'
 
 on:
   push:
