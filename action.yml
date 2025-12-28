@@ -171,7 +171,7 @@ runs:
         ## Configure compiler and target settings
         spack_exe compiler find
         spack_exe config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
-        spack_exe config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']]"
+        spack_exe config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
 
         ## Configure external packages if specified
         if [[ ! -z "${{ inputs.spack-externals }}" && "${{ inputs.use-common-build-cache }}" != true ]]; then
