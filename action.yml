@@ -28,6 +28,7 @@ inputs:
   use-common-build-cache:
     description: 'Use common GitHub Packages binary mirror'
     default: true
+    type: boolean
   upload-artifacts:
     description: 'Upload certain logs on job failure (options: always, never, on-failure)'
     required: false
@@ -69,6 +70,7 @@ inputs:
   use-repo-cache:
     description: 'Enable repo-level caching'
     default: true
+    type: boolean
   repo-cache-key-suffix:
     description: 'String to append to repo-level cache key'
     default: 1
@@ -78,14 +80,21 @@ inputs:
   cache-spack-lock:
     description: 'Cache spack.lock to speed up concretization'
     default: true
+    type: boolean
   test-package-load:
     description: 'Run "spack load <package-name>" to verify setup_run_environment() does not fail'
     default: true
+    type: boolean
   spack-test-flag:
     default: '--test root'
   save-repo-cache:
     description: 'Save repo cache (use-repo-cache must be true)'
     default: true
+    type: boolean
+  dependencies-only:
+    description: "Only install the requested spec's dependencies"
+    default: false
+    type: boolean
 
 runs:
   using: "composite"
@@ -212,10 +221,9 @@ runs:
 
         ## Install, including running install-time tests ('make test' etc.)
         set +e
-        if [ "$RUNNER_DEBUG" == "1" ]; then
-          verboseflag="--verbose"
-        fi
-        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag
+        if [ "$RUNNER_DEBUG" == "1" ]; then verboseflag="--verbose"; fi
+        if [ "${{ inputs.dependencies-only }}" == "true" ]; then dependenciesonlyflag="--only dependencies" fi
+        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $dependenciesonlyflag
 
         rc=$?
         set -e
