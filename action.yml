@@ -122,6 +122,7 @@ runs:
       with:
         ref: ${{ inputs.spack-ref }}
         path: ${{ inputs.spack-root }}
+        color: false
 
     - name: "Get spack-helpers"
       uses: NOAA-EMC/spack-helpers@develop
@@ -238,8 +239,8 @@ runs:
         set -e
 
         ## Cache built packages and verify the package loads
-        if [ "${{ inputs.use-repo-cache }}" == true  && "${{ inputs.package-only }}" == "false"]; then
-          spack_exe buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache $(SPACK_COLOR=never spack find --format "{name}/{hash:7}")
+        if [ "${{ inputs.use-repo-cache }}" == true  && "${{ inputs.package-only }}" == "false" ]; then
+          spack_exe buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache $(spack find --format "{name}/{hash:7}")
         fi
         if [[ ${{ inputs.test-package-load }} == true && "${{ inputs.dependencies-only }}" == "false" ]]; then
           spack_exe load ${{ inputs.package-name }}
