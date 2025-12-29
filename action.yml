@@ -238,7 +238,7 @@ runs:
 
         ## Cache built packages and verify the package loads
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
-          for spec in $(spack find --format "{name}/{hash:7}"); do
+          for spec in $(spack find --format "{name}@{version}"); do
             spack_exe buildcache push --with-build-dependencies --unsigned $GITHUB_WORKSPACE/spack-build-cache $spec
           done
         fi
