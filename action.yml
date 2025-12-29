@@ -159,7 +159,6 @@ runs:
             spack "$@"
           fi
         }
-        export SPACK_COLOR=never
 
         ## Setup build caches and mirrors
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
@@ -240,9 +239,7 @@ runs:
 
         ## Cache built packages and verify the package loads
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
-          for spec in $(spack find --format "{name}/{hash:7}"); do
-            spack_exe buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache "${spec}"
-          done
+          spack_exe buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache $(SPACK_COLOR=never spack find --format "{name}/{hash:7}")
         fi
         if [[ ${{ inputs.test-package-load }} == true && "${{ inputs.dependencies-only }}" == "false" ]]; then
           spack_exe load ${{ inputs.package-name }}
