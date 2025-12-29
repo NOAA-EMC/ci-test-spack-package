@@ -210,18 +210,20 @@ runs:
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
 
+        # Print spack.yaml
+        echo -e "spack.yaml:\n========="
+        cat ${SPACK_ENV}/spack.yaml
+        echo "========="
+
         ## Concretize the environment
         spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
 
-        ## Validate configuration and display results
+        ## Validate configuration
         spack_exe validate compilers ${{ inputs.spack-compiler }}
         if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
           cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
         fi
-        cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
-        echo -e "spack.yaml:\n========="
-        cat ${SPACK_ENV}/spack.yaml
-        echo "========="
 
         ## Install, including running install-time tests ('make test' etc.)
         set +e
@@ -236,7 +238,11 @@ runs:
 
         ## Cache built packages and verify the package loads
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
-          spack_exe buildcache push --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
+          if [ "${{ inputs.dependencies-only }}" == "false" ]; then
+            cacheflag="--only dependencies"
+            cachespec="${{ inputs.package-name }}"
+          fi
+          spack_exe buildcache push --unsigned $cacheflag $GITHUB_WORKSPACE/spack-build-cache $cachespec
         fi
         if [[ ${{ inputs.test-package-load }} == true && "${{ inputs.dependencies-only }}" == "false" ]]; then
           spack_exe load ${{ inputs.package-name }}
