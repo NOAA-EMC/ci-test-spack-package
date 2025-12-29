@@ -239,7 +239,7 @@ runs:
 
         ## Cache built packages and verify the package loads
         if [ "${{ inputs.use-repo-cache }}" == true ]; then
-          for spec in $(spack find --format "/{hash}"); do
+          for spec in $(spack find --format "{name}/{hash:7}" | cat); do
             spack_exe buildcache push --unsigned $GITHUB_WORKSPACE/spack-build-cache "${spec}"
           done
         fi
