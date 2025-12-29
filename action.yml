@@ -129,10 +129,9 @@ runs:
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
-      shell: bash
+      shell: spack-bash {0}
       run: |
-        mkdir -p ${{ inputs.spack-root }}/var/spack/repos/builtin/packages/${{ inputs.package-name }}/
-        cp spack-devpkg-${{ inputs.package-name }}/${{ inputs.custom-recipe }} ${{ inputs.spack-root }}/var/spack/repos/builtin/packages/${{ inputs.package-name }}/package.py
+        cp spack-devpkg-${{ inputs.package-name }}/${{ inputs.custom-recipe }} $(spack location --package-dir ${{ inputs.package-name }})/package.py
 
     - name: "Restore repo-level cache"
       uses: actions/cache/restore@v4
