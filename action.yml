@@ -183,7 +183,8 @@ runs:
 
         ## Configure compiler and target settings
         spack_exe compiler find
-        spack_exe config add "packages:all:require:'target=${{ inputs.cpu-target }} %${{ inputs.spack-compiler }}'"
+        spack_exe config add 'packages:all:require:"target=${{ inputs.cpu-target }}"'
+        spack_exe config add 'packages:all:prefer:["%${{ inputs.spack-compiler }}"]'
         spack_exe config add "concretizer:reuse:include:['%${{ inputs.spack-compiler }}']"
 
         ## Configure external packages if specified
