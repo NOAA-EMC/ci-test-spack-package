@@ -99,6 +99,10 @@ inputs:
     description: "Only install the requested spec (no deps; only useful for CI testing)"
     default: false
     type: boolean
+  no-cached-roots:
+    description: "Don't install from build-cached packages for root specs"
+    default: true
+    type: boolean
 
 runs:
   using: "composite"
@@ -231,6 +235,7 @@ runs:
         if [ "$RUNNER_DEBUG" == "1" ]; then verboseflag="--verbose"; fi
         if [ "${{ inputs.dependencies-only }}" == "true" ]; then onlyflag="--only dependencies"; fi
         if [ "${{ inputs.package-only }}" == "true" ]; then onlyflag="--use-buildcache dependencies:only"; fi
+        if [ "${{ inputs.no-cached-roots }}" == "true" ]; then cacheflag="--use-buildcache package:never"; fi
 
         spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag
 
