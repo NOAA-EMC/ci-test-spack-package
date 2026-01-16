@@ -237,7 +237,7 @@ runs:
         if [ "${{ inputs.package-only }}" == "true" ]; then onlyflag="--use-buildcache dependencies:only"; fi
         if [ "${{ inputs.no-cached-roots }}" == "true" ]; then cacheflag="--use-buildcache package:never"; fi
 
-        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag
+        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag $cacheflag
 
         rc=$?
         set -e
