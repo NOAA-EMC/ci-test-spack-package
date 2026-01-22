@@ -31,11 +31,11 @@ issue](https://github.com/NOAA-EMC/ci-test-spack-package/issues). For general
 NCEPLIBS inquiries, contact [Alex Richert](mailto:alexander.richert@noaa.gov)
 (secondary point of contact [Hang Lei](mailto:hang.lei@noaa.gov)).
 
-### Authors
+## Authors
 
 [Alex Richert](mailto:alexander.richert@noaa.gov)
 
-### Usage
+## Usage
 
 To use this Action, include the following step in your GitHub Actions workflow
 for a code to be built and tested as a Spack package:
@@ -51,7 +51,38 @@ for a code to be built and tested as a Spack package:
         spack-ref: v0.21.2
 ```
 
-See `action.yml` for the full list of available options and their defaults.
+<!-- action-docs-inputs source="action.yml" -->
+### Inputs
+
+| name | description | required | default |
+| --- | --- | --- | --- |
+| `package-name` | <p>Spack package name to be tested (no version number or variants)</p> | `true` | `""` |
+| `package-version` | <p>Version of Spack package to be tested</p> | `false` | `develop` |
+| `package-variants` | <p>Variants to apply to package spec</p> | `false` | `""` |
+| `custom-recipe` | <p>Path to custom recipe for package to be tested, relative to repo root</p> | `false` | `none` |
+| `dependents-to-test` | <p>Spack packages to also run unit tests for (space-delimited list with variants)</p> | `false` | `""` |
+| `use-common-build-cache` | <p>Use common GitHub Packages binary mirror</p> | `false` | `true` |
+| `upload-artifacts` | <p>Upload certain logs on job failure (options: always, never, on-failure)</p> | `false` | `on-failure` |
+| `repo-dir` | <p>Directory containing modified code to be tested (default is to download automatically)</p> | `false` | `auto` |
+| `spack-ref` | <p>Spack tag/branch/commit to use</p> | `false` | `develop` |
+| `cpu-target` | <p>Spack CPU target</p> | `false` | `x86_64` |
+| `spack-externals` | <p>External packages for Spack to try to use</p> | `false` | `""` |
+| `spack-compiler` | <p>Set spec for Spack compiler (e.g., "gcc@12")</p> | `false` | `gcc` |
+| `parallel-jobs` | <p>Set number of Spack parallel install jobs ("spack install -j/--jobs")</p> | `false` | `2` |
+| `spack-root` | <p>Spack root directory</p> | `false` | `spack-root` |
+| `cache-secret` | <p>Secret for build cache</p> | `false` | `""` |
+| `unique-id` | <p>Unique ID for artifact name</p> | `false` | `""` |
+| `use-repo-cache` | <p>Enable repo-level caching</p> | `false` | `true` |
+| `repo-cache-key-suffix` | <p>String to append to repo-level cache key</p> | `false` | `1` |
+| `repo-save-key-suffix` | <p>Save a repo-level cache entry different from the restored one</p> | `false` | `""` |
+| `cache-spack-lock` | <p>Cache spack.lock to speed up concretization</p> | `false` | `true` |
+| `test-package-load` | <p>Run "spack load <package-name>" to verify setup<em>run</em>environment() does not fail</p> | `false` | `true` |
+| `spack-test-flag` | <p>Flag to use for enabling install-time testing (argument to <code>spack install</code>)</p> | `false` | `--test root` |
+| `save-repo-cache` | <p>Save repo cache (use-repo-cache must be true)</p> | `false` | `true` |
+| `dependencies-only` | <p>Only install the requested spec's dependencies</p> | `false` | `false` |
+| `package-only` | <p>Only install the requested spec (no deps; only useful for CI testing)</p> | `false` | `false` |
+| `no-cached-roots` | <p>Don't install from build-cached packages for root specs</p> | `false` | `true` |
+<!-- action-docs-inputs source="action.yml" -->
 
 In order to use the repo-level caching of compiled packages, `permissions:actions:write`
 must be set at the job level (this enables an existing cache to be deleted and

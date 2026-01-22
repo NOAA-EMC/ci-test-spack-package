@@ -86,6 +86,7 @@ inputs:
     default: true
     type: boolean
   spack-test-flag:
+    description: 'Flag to use for enabling install-time testing (argument to `spack install`)'
     default: '--test root'
   save-repo-cache:
     description: 'Save repo cache (use-repo-cache must be true)'
