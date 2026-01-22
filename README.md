@@ -14,16 +14,21 @@ is recommended to include a custom `check()` function in the recipe to ensure
 that the appropriate target is run, as the generic test functionality in Spack
 does not fail when the `test` and `check` targets do not exist.
 
+This action can also be used to install only the dependencies of a given package,
+using the `dependencies-only` option.
+
 This repository supports [NCEPLIBS](https://github.com/NOAA-EMC/NCEPLIBS) CI
 workflows.
 
 Features:
 - Build caching of dependencies through GitHub Packages (enabled by default)
+- Repo-level build cache restoration and persistence to accelerate builds across workflow runs
 - Supports compiling and unit testing downstream dependents through Spack to
   enhance code testing
 - Supports custom Spack recipes (must be contained within the same repository),
   which allows for packages to be tested that do not exist in the Spack
   repository
+- Automatic artifact uploading of debug logs and build information on failure
 
 To submit bug reports, feature requests, or other code-related issues including
 usage questions, please create a [GitHub
