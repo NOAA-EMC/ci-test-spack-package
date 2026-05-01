@@ -137,21 +137,12 @@ runs:
         action_spack_root_path="${GITHUB_WORKSPACE}/${{ inputs.spack-root }}"
 
         if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) ]]; then
+          if [[ -f /entrypoint.sh ]]; then
+            . /entrypoint.sh
+          fi
           if command -v spack >/dev/null 2>&1; then
-            detected_spack_root="$(spack location -r)"
-            wrapper_dir="${GITHUB_WORKSPACE}/.spack-shell"
-            mkdir -p "${wrapper_dir}"
-            {
-              printf '%s\n' '#!/usr/bin/env bash'
-              printf '. %q\n' "${detected_spack_root}/share/spack/setup-env.sh"
-              printf '%s\n' 'exec bash "$@"'
-            } > "${wrapper_dir}/spack-bash"
-            chmod +x "${wrapper_dir}/spack-bash"
-            echo "${wrapper_dir}" >> "$GITHUB_PATH"
-
             use_preexisting_container_spack=true
-            action_spack_root_path="${detected_spack_root}"
-            echo "SPACK_ROOT=${detected_spack_root}" >> "$GITHUB_ENV"
+            action_spack_root_path="$(spack location -r)"
           fi
         fi
 
@@ -171,8 +162,11 @@ runs:
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
-      shell: spack-bash {0}
+      shell: bash
       run: |
+        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) && -f /entrypoint.sh ]]; then
+          . /entrypoint.sh
+        fi
         cp spack-devpkg-${{ inputs.package-name }}/${{ inputs.custom-recipe }} $(spack location --package-dir ${{ inputs.package-name }})/package.py
 
     - name: "Restore repo-level cache"
@@ -198,8 +192,12 @@ runs:
         key: dependency-reuse-marker-cache-${{ inputs.repo-cache-key-suffix }}
 
     - name: "Do Spack installation and tests"
-      shell: spack-bash {0}
+      shell: bash
       run: |
+        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) && -f /entrypoint.sh ]]; then
+          . /entrypoint.sh
+        fi
+
         ## Define spack wrapper function
         spack_exe() {
           if [ "$RUNNER_DEBUG" == "1" ]; then
@@ -225,7 +223,7 @@ runs:
 
         ## Detect containerized GitHub Actions execution context
         running_in_containerized_github_actions=false
-        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -f /run/.containerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) ]]; then
+        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) ]]; then
           running_in_containerized_github_actions=true
         fi
 
@@ -268,7 +266,7 @@ runs:
         spack_exe filter-compilers ${{ inputs.spack-compiler }} $alsogcc --keep-only
 
         ## Restore cached lock file if available
-        if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
+        if [[ "${{ inputs.cache-spack-lock }}" == true && -f "$ACTION_SPACK_ROOT_PATH/spack.lock" ]]; then
           cp "$ACTION_SPACK_ROOT_PATH/spack.lock" "$SPACK_ENV/."
         fi
 
