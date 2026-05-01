@@ -64,7 +64,7 @@ inputs:
   container-spack-env-path:
     description: 'Path to container Spack environment'
     required: false
-    default: '/opt/spack/environment'
+    default: '/opt/spack-environment'
   cache-secret:
     description: 'Secret for build cache'
     required: false
