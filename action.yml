@@ -299,13 +299,13 @@ runs:
             reusability_check_rc=$?
             set -e
             if [[ "${{ inputs.use-dependency-reuse-marker-cache }}" == "true" && ${reusability_check_rc} -eq 0 ]]; then
-              cat > "${dependency_reuse_marker_file}" << EOF
-constraint-hash=${reusability_constraints_hash}
-container-env-path=${container_spack_env_path}
-spack-lock-sha256=${reusability_lock_hash}
-script-sha256=${reusability_script_hash}
-created-at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-EOF
+              {
+                printf 'constraint-hash=%s\n' "${reusability_constraints_hash}"
+                printf 'container-env-path=%s\n' "${container_spack_env_path}"
+                printf 'spack-lock-sha256=%s\n' "${reusability_lock_hash}"
+                printf 'script-sha256=%s\n' "${reusability_script_hash}"
+                printf 'created-at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              } > "${dependency_reuse_marker_file}"
             fi
           fi
 
