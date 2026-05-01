@@ -25,6 +25,8 @@ Features:
 - Repo-level build cache restoration and persistence to accelerate builds across workflow runs
 - Supports compiling and unit testing downstream dependents through Spack to
   enhance code testing
+- Detects containerized GitHub Actions runs and attempts a reuse-first install
+  path, falling back to full concretization/install when requirements are not met
 - Supports custom Spack recipes (must be contained within the same repository),
   which allows for packages to be tested that do not exist in the Spack
   repository
@@ -75,6 +77,8 @@ for a code to be built and tested as a Spack package:
 | `spack-compiler` | <p>Set spec for Spack compiler (e.g., "gcc@12")</p> | `false` | `gcc` |
 | `parallel-jobs` | <p>Set number of Spack parallel install jobs ("spack install -j/--jobs")</p> | `false` | `2` |
 | `spack-root` | <p>Spack root directory</p> | `false` | `spack-root` |
+| `container-spack-env-path` | <p>Path to preexisting container Spack environment (placeholder by default)</p> | `false` | `__SET_ME_CONTAINER_SPACK_ENV_PATH__` |
+| `container-spack-view-path` | <p>Path to preexisting container Spack view (placeholder by default)</p> | `false` | `__SET_ME_CONTAINER_SPACK_VIEW_PATH__` |
 | `cache-secret` | <p>Secret for build cache</p> | `false` | `""` |
 | `unique-id` | <p>Unique ID for artifact name</p> | `false` | `""` |
 | `use-repo-cache` | <p>Enable repo-level caching</p> | `false` | `true` |
@@ -87,6 +91,7 @@ for a code to be built and tested as a Spack package:
 | `dependencies-only` | <p>Only install the requested spec's dependencies</p> | `false` | `false` |
 | `package-only` | <p>Only install the requested spec (no deps; only useful for CI testing)</p> | `false` | `false` |
 | `no-cached-roots` | <p>Don't install from build-cached packages for root specs</p> | `false` | `true` |
+| `use-dependency-reuse-marker-cache` | <p>Enable dependency reusability marker cache</p> | `false` | `true` |
 <!-- action-docs-inputs source="action.yml" -->
 
 In order to use the repo-level caching of compiled packages, `permissions:actions:write`

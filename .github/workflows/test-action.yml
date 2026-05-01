@@ -58,3 +58,56 @@ jobs:
           parallel-jobs: 2
           spack-compiler: gcc@13
           package-only: true
+
+  test-action-container-reuse:
+    name: Test action in containerized GH Actions context
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/noaa-emc/ci-common-build-cache/nceplibs-develop-ubuntu-24.04-gcc-13-mpich-x@sha256:f9379d115e4fae79d3faadcc56ad052b318fac56a33fd43fba36518ad8fe2f0e
+
+    steps:
+      - name: Checkout action repository
+        uses: actions/checkout@v4
+        with:
+          path: action
+
+      - name: Checkout test package (w3emc)
+        uses: actions/checkout@v4
+        with:
+          repository: NOAA-EMC/NCEPLIBS-w3emc
+          path: test-package
+
+      - name: First run with container preexisting environment
+        uses: ./action
+        with:
+          package-name: w3emc
+          package-version: develop
+          repo-dir: ${{ github.workspace }}/test-package
+          parallel-jobs: 2
+          spack-compiler: gcc@13
+          dependencies-only: true
+          use-dependency-reuse-marker-cache: true
+          container-spack-env-path: /opt/spack_202604/var/spack/environments/zen3-gcc13
+
+      - name: Second run with same constraints (marker-cache hit expected)
+        uses: ./action
+        with:
+          package-name: w3emc
+          package-version: develop
+          repo-dir: ${{ github.workspace }}/test-package
+          parallel-jobs: 2
+          spack-compiler: gcc@13
+          dependencies-only: true
+          use-dependency-reuse-marker-cache: true
+          container-spack-env-path: /opt/spack_202604/var/spack/environments/zen3-gcc13
+
+      - name: Run in container without preexisting container environment
+        uses: ./action
+        with:
+          package-name: w3emc
+          package-version: develop
+          repo-dir: ${{ github.workspace }}/test-package
+          parallel-jobs: 2
+          spack-compiler: gcc@13
+          dependencies-only: true
+          use-dependency-reuse-marker-cache: true

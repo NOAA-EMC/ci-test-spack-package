@@ -61,6 +61,10 @@ inputs:
     description: 'Spack root directory'
     required: false
     default: 'spack-root'
+  container-spack-env-path:
+    description: 'Path to container Spack environment'
+    required: false
+    default: '/opt/spack/environment'
   cache-secret:
     description: 'Secret for build cache'
     required: false
@@ -102,6 +106,10 @@ inputs:
     type: boolean
   no-cached-roots:
     description: "Don't install from build-cached packages for root specs"
+    default: true
+    type: boolean
+  use-dependency-reuse-marker-cache:
+    description: 'Enable dependency reusability marker cache'
     default: true
     type: boolean
 
@@ -153,6 +161,13 @@ runs:
         path: ${{ github.workspace }}/${{ inputs.spack-root }}/spack.lock
         key: spack-lock-cache-${{ inputs.repo-cache-key-suffix }}
 
+    - name: "Cache dependency reusability markers"
+      uses: actions/cache@v4
+      if: inputs.use-dependency-reuse-marker-cache == 'true'
+      with:
+        path: ${{ github.workspace }}/dependency-reuse-marker-cache
+        key: dependency-reuse-marker-cache-${{ inputs.repo-cache-key-suffix }}
+
     - name: "Do Spack installation and tests"
       shell: spack-bash {0}
       run: |
@@ -178,6 +193,18 @@ runs:
         spack_exe mirror remove github-actions-buildcache
         spack_exe mirror list
         spack_exe buildcache list --allarch |& sed 's|^|::debug::|'
+
+        ## Detect containerized GitHub Actions execution context
+        running_in_containerized_github_actions=false
+        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -f /run/.containerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) ]]; then
+          running_in_containerized_github_actions=true
+        fi
+
+        ## Paths for a preexisting Spack environment in the container image
+        container_spack_env_path="${{ inputs.container-spack-env-path }}"
+
+        ## Prefer reusing already-installed packages when possible
+        spack_exe config add "concretizer:reuse:true"
 
         ## Create and configure test environment
         spack_exe env create --without-view test
@@ -216,32 +243,124 @@ runs:
           cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
         fi
 
+        ## In containerized CI, prefer a preexisting container environment lock if provided.
+        using_container_spack_lock=false
+        if [[ "${running_in_containerized_github_actions}" == true \
+              && "${container_spack_env_path}" != "__SET_ME_CONTAINER_SPACK_ENV_PATH__" \
+              && -f "${container_spack_env_path}/spack.lock" ]]; then
+          cp "${container_spack_env_path}/spack.lock" "$SPACK_ENV/spack.lock"
+          using_container_spack_lock=true
+          echo "Using spack.lock from preexisting container environment: ${container_spack_env_path}"
+        fi
+
         # Print spack.yaml
         echo -e "spack.yaml:\n========="
         cat ${SPACK_ENV}/spack.yaml
         echo "========="
 
-        ## Concretize the environment
-        spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
-        cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
-
-        ## Validate configuration
-        spack_exe validate compilers ${{ inputs.spack-compiler }}
-        if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
-          cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
-        fi
-
-        ## Install, including running install-time tests ('make test' etc.)
-        set +e
+        ## Prepare install flags
         if [ "$RUNNER_DEBUG" == "1" ]; then verboseflag="--verbose"; fi
         if [ "${{ inputs.dependencies-only }}" == "true" ]; then onlyflag="--only dependencies"; fi
         if [ "${{ inputs.package-only }}" == "true" ]; then onlyflag="--use-buildcache dependencies:only"; fi
         if [ "${{ inputs.no-cached-roots }}" == "true" ]; then cacheflag="--use-buildcache package:never"; fi
 
-        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag $cacheflag
+        ## In a containerized GitHub Actions context, strictly verify that requested
+        ## specs can be reused before skipping explicit concretization.
+        skip_concretize_and_full_install=false
+        if [[ "${running_in_containerized_github_actions}" == true && "${using_container_spack_lock}" == true ]]; then
+          reusability_check_script="${GITHUB_ACTION_PATH}/check_dependency_reusability.py"
+          dependency_reuse_marker_dir="${GITHUB_WORKSPACE}/dependency-reuse-marker-cache"
+          mkdir -p "${dependency_reuse_marker_dir}"
 
-        rc=$?
-        set -e
+          reusability_lock_hash=$(sha256sum "${container_spack_env_path}/spack.lock" | awk '{print $1}')
+          reusability_script_hash=$(sha256sum "${reusability_check_script}" | awk '{print $1}')
+          reusability_constraints_hash=$(printf '%s\n' \
+            "package-name=${{ inputs.package-name }}" \
+            "package-version=${{ inputs.package-version }}" \
+            "package-variants=${{ inputs.package-variants }}" \
+            "dependents-to-test=${{ inputs.dependents-to-test }}" \
+            "container-env-path=${container_spack_env_path}" \
+            "spack-lock-sha256=${reusability_lock_hash}" \
+            "script-sha256=${reusability_script_hash}" \
+            | sha256sum | awk '{print $1}')
+          dependency_reuse_marker_file="${dependency_reuse_marker_dir}/${reusability_constraints_hash}.ok"
+
+          if [[ "${{ inputs.use-dependency-reuse-marker-cache }}" == "true" && -f "${dependency_reuse_marker_file}" ]]; then
+            reusability_check_rc=0
+            echo "Dependency reusability marker hit (${reusability_constraints_hash}); skipping script execution."
+          else
+            set +e
+            spack-python "${reusability_check_script}" \
+              --env-path "${container_spack_env_path}" \
+              --package-name "${{ inputs.package-name }}" \
+              --package-version "${{ inputs.package-version }}" \
+              --package-variants "${{ inputs.package-variants }}" \
+              --dependents-to-test "${{ inputs.dependents-to-test }}"
+            reusability_check_rc=$?
+            set -e
+            if [[ "${{ inputs.use-dependency-reuse-marker-cache }}" == "true" && ${reusability_check_rc} -eq 0 ]]; then
+              cat > "${dependency_reuse_marker_file}" << EOF
+constraint-hash=${reusability_constraints_hash}
+container-env-path=${container_spack_env_path}
+spack-lock-sha256=${reusability_lock_hash}
+script-sha256=${reusability_script_hash}
+created-at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+EOF
+            fi
+          fi
+
+          if [[ ${reusability_check_rc} -eq 0 ]]; then
+            skip_concretize_and_full_install=true
+            echo "Reusability script returned success; skipping explicit concretize/full-install pass."
+          else
+            echo "Reusability script reported dependencies are not reusable; running full concretize/install flow."
+          fi
+
+          if [[ "${skip_concretize_and_full_install}" == true && -z "${onlyflag}" ]]; then
+            # Install only root specs (package under test + any requested dependents).
+            onlyflag="--only package"
+          fi
+
+          if [[ "${skip_concretize_and_full_install}" == true ]]; then
+            echo "Detected containerized GitHub Actions context with matching preexisting container environment."
+            echo "Container Spack env path: ${container_spack_env_path}"
+            echo "Container Spack view path: ${container_spack_view_path}"
+
+            set +e
+            spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag $cacheflag
+            rc=$?
+            set -e
+
+            if [[ ${rc} -eq 0 ]]; then
+              echo "Root-only install succeeded."
+            else
+              skip_concretize_and_full_install=false
+              echo "Root-only install failed; running full concretize/install flow."
+            fi
+          fi
+        elif [[ "${running_in_containerized_github_actions}" == true ]]; then
+          echo "Containerized run detected, but no preexisting container environment lock was provided; running full concretize/install flow."
+        fi
+
+        ## Concretize the environment
+        if [[ "${skip_concretize_and_full_install}" != true ]]; then
+          spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+          cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        fi
+
+        ## Validate configuration
+        spack_exe validate compilers ${{ inputs.spack-compiler }}
+        if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ENV/spack.lock ]]; then
+          cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
+        fi
+
+        ## Install, including running install-time tests ('make test' etc.)
+        if [[ "${skip_concretize_and_full_install}" != true ]]; then
+          set +e
+          spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag $cacheflag
+          rc=$?
+          set -e
+        fi
 
         ## Cache built packages and verify the package loads
         if [[ "${{ inputs.use-repo-cache }}" == true  && "${{ inputs.package-only }}" == "false" ]]; then
