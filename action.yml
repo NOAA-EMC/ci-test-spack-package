@@ -157,6 +157,22 @@ runs:
         path: ${{ inputs.spack-root }}
         color: false
 
+      - name: "Configure spack-bash shell"
+        shell: bash
+        run: |
+          wrapper_dir="${GITHUB_WORKSPACE}/.spack-shell"
+          mkdir -p "${wrapper_dir}"
+          {
+            printf '%s\n' '#!/usr/bin/env bash'
+            printf '%s\n' 'if [[ -f /entrypoint.sh ]]; then . /entrypoint.sh; fi'
+            printf 'if [[ -f %q ]]; then . %q; fi\n' \
+              "${ACTION_SPACK_ROOT_PATH}/share/spack/setup-env.sh" \
+              "${ACTION_SPACK_ROOT_PATH}/share/spack/setup-env.sh"
+            printf '%s\n' 'exec bash "$@"'
+          } > "${wrapper_dir}/spack-bash"
+          chmod +x "${wrapper_dir}/spack-bash"
+          echo "${wrapper_dir}" >> "$GITHUB_PATH"
+
     - name: "Get spack-helpers"
       uses: NOAA-EMC/spack-helpers@develop
 
@@ -192,7 +208,7 @@ runs:
         key: dependency-reuse-marker-cache-${{ inputs.repo-cache-key-suffix }}
 
     - name: "Do Spack installation and tests"
-      shell: bash
+      shell: spack-bash {0}
       run: |
         if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) && -f /entrypoint.sh ]]; then
           . /entrypoint.sh
