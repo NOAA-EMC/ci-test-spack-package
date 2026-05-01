@@ -87,7 +87,6 @@ jobs:
           spack-compiler: gcc@13
           dependencies-only: true
           use-dependency-reuse-marker-cache: true
-          container-spack-env-path: /opt/spack_202604/var/spack/environments/zen3-gcc13
 
       - name: Second run with same constraints (marker-cache hit expected)
         uses: ./action
@@ -99,7 +98,6 @@ jobs:
           spack-compiler: gcc@13
           dependencies-only: true
           use-dependency-reuse-marker-cache: true
-          container-spack-env-path: /opt/spack_202604/var/spack/environments/zen3-gcc13
 
       - name: Run in container without preexisting container environment
         uses: ./action
