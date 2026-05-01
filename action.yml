@@ -157,32 +157,28 @@ runs:
         path: ${{ inputs.spack-root }}
         color: false
 
-      - name: "Configure spack-bash shell"
-        shell: bash
-        run: |
-          wrapper_dir="${GITHUB_WORKSPACE}/.spack-shell"
-          mkdir -p "${wrapper_dir}"
-          {
-            printf '%s\n' '#!/usr/bin/env bash'
-            printf '%s\n' 'if [[ -f /entrypoint.sh ]]; then . /entrypoint.sh; fi'
-            printf 'if [[ -f %q ]]; then . %q; fi\n' \
-              "${ACTION_SPACK_ROOT_PATH}/share/spack/setup-env.sh" \
-              "${ACTION_SPACK_ROOT_PATH}/share/spack/setup-env.sh"
-            printf '%s\n' 'exec bash "$@"'
-          } > "${wrapper_dir}/spack-bash"
-          chmod +x "${wrapper_dir}/spack-bash"
-          echo "${wrapper_dir}" >> "$GITHUB_PATH"
+    - name: "Configure spack-bash shell"
+      shell: bash
+      run: |
+        wrapper_path="${GITHUB_WORKSPACE}/spack-bash"
+        {
+          printf '%s\n' '#!/usr/bin/env bash'
+          printf '%s\n' 'if [[ -f /entrypoint.sh ]]; then . /entrypoint.sh; fi'
+          printf 'if [[ -f %q ]]; then . %q; fi\n' \
+            "${ACTION_SPACK_ROOT_PATH}/share/spack/setup-env.sh" \
+            "${ACTION_SPACK_ROOT_PATH}/share/spack/setup-env.sh"
+          printf '%s\n' 'exec bash "$@"'
+        } > "${wrapper_path}"
+        chmod +x "${wrapper_path}"
+        echo "${GITHUB_WORKSPACE}" >> "$GITHUB_PATH"
 
     - name: "Get spack-helpers"
       uses: NOAA-EMC/spack-helpers@develop
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
-      shell: bash
+      shell: spack-bash {0}
       run: |
-        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) && -f /entrypoint.sh ]]; then
-          . /entrypoint.sh
-        fi
         cp spack-devpkg-${{ inputs.package-name }}/${{ inputs.custom-recipe }} $(spack location --package-dir ${{ inputs.package-name }})/package.py
 
     - name: "Restore repo-level cache"
@@ -210,10 +206,6 @@ runs:
     - name: "Do Spack installation and tests"
       shell: spack-bash {0}
       run: |
-        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) && -f /entrypoint.sh ]]; then
-          . /entrypoint.sh
-        fi
-
         ## Define spack wrapper function
         spack_exe() {
           if [ "$RUNNER_DEBUG" == "1" ]; then
