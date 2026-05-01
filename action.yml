@@ -130,7 +130,36 @@ runs:
       run: |
         ln -s ${{ inputs.repo-dir }} spack-devpkg-${{ inputs.package-name }}
 
+    - name: "Detect preexisting container Spack"
+      shell: bash
+      run: |
+        use_preexisting_container_spack=false
+        action_spack_root_path="${GITHUB_WORKSPACE}/${{ inputs.spack-root }}"
+
+        if [[ "${GITHUB_ACTIONS}" == "true" && ( -f /.dockerenv || -n "${RUNNER_CONTAINER_HOOKS}" ) ]]; then
+          if command -v spack >/dev/null 2>&1; then
+            detected_spack_root="$(spack location -r)"
+            wrapper_dir="${GITHUB_WORKSPACE}/.spack-shell"
+            mkdir -p "${wrapper_dir}"
+            {
+              printf '%s\n' '#!/usr/bin/env bash'
+              printf '. %q\n' "${detected_spack_root}/share/spack/setup-env.sh"
+              printf '%s\n' 'exec bash "$@"'
+            } > "${wrapper_dir}/spack-bash"
+            chmod +x "${wrapper_dir}/spack-bash"
+            echo "${wrapper_dir}" >> "$GITHUB_PATH"
+
+            use_preexisting_container_spack=true
+            action_spack_root_path="${detected_spack_root}"
+            echo "SPACK_ROOT=${detected_spack_root}" >> "$GITHUB_ENV"
+          fi
+        fi
+
+        echo "USE_PREEXISTING_CONTAINER_SPACK=${use_preexisting_container_spack}" >> "$GITHUB_ENV"
+        echo "ACTION_SPACK_ROOT_PATH=${action_spack_root_path}" >> "$GITHUB_ENV"
+
     - name: "Get Spack"
+      if: env.USE_PREEXISTING_CONTAINER_SPACK != 'true'
       uses: spack/setup-spack@v2.1.1
       with:
         ref: ${{ inputs.spack-ref }}
@@ -158,7 +187,7 @@ runs:
       uses: actions/cache@v4
       if: inputs.cache-spack-lock == 'true'
       with:
-        path: ${{ github.workspace }}/${{ inputs.spack-root }}/spack.lock
+        path: ${{ env.ACTION_SPACK_ROOT_PATH }}/spack.lock
         key: spack-lock-cache-${{ inputs.repo-cache-key-suffix }}
 
     - name: "Cache dependency reusability markers"
@@ -240,7 +269,7 @@ runs:
 
         ## Restore cached lock file if available
         if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
-          cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
+          cp "$ACTION_SPACK_ROOT_PATH/spack.lock" "$SPACK_ENV/."
         fi
 
         ## In containerized CI, prefer a preexisting container environment lock if provided.
@@ -351,7 +380,7 @@ runs:
         ## Validate configuration
         spack_exe validate compilers ${{ inputs.spack-compiler }}
         if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ENV/spack.lock ]]; then
-          cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
+          cp "$SPACK_ENV/spack.lock" "$ACTION_SPACK_ROOT_PATH/."
         fi
 
         ## Install, including running install-time tests ('make test' etc.)
@@ -397,10 +426,10 @@ runs:
       with:
         name: spack-package-test-artifacts-${{ env.uniqid }}
         path: |
-          ${{ github.workspace }}/${{ inputs.spack-root }}/var/spack/environments/test/spack.yaml
+          ${{ env.ACTION_SPACK_ROOT_PATH }}/var/spack/environments/test/spack.yaml
           ${{ github.workspace }}/spack-concretize-out.log
           ${{ github.workspace }}/spack-concretize-err.log
-          ${{ github.workspace }}/${{ inputs.spack-root }}/var/spack/environments/test/${{ inputs.package-name }}/spack-build-*/Testing/Temporary/LastTest.log
+          ${{ env.ACTION_SPACK_ROOT_PATH }}/var/spack/environments/test/${{ inputs.package-name }}/spack-build-*/Testing/Temporary/LastTest.log
           /tmp/runner/spack-stage/spack-stage-*/spack-build-out.txt
           /tmp/runner/spack-stage/spack-stage-*/install-time-test-log.txt
           /tmp/runner/spack-stage/spack-stage-*/spack-build-*/Testing/Temporary/LastTest.log
