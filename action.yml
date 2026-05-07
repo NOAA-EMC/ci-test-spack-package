@@ -220,7 +220,7 @@ runs:
 
         ## Create and configure test environment, or use preinstalled container environment
         if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
-          # Remove package and its deps from spack.yaml:
+          # Remove package and its dependents from spack.yaml:
           installeddeps=$(spack dependents --transitive ${{ inputs.package-name }} | grep -oP "^\w{7}\s+\K[^@]+" | sort | uniq)
           for p in ${{ inputs.package-name }} $installeddeps; do
             spack remove $p 
