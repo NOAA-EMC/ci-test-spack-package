@@ -65,6 +65,10 @@ inputs:
     description: 'Path to preinstalled Spack environment in container images'
     required: false
     default: '/opt/spack-environment'
+  ctr-spack-root:
+    description: 'Path to $SPACK_ROOT in container image'
+    required: false
+    default: '/opt/spack'
   cache-secret:
     description: 'Secret for build cache'
     required: false
@@ -161,6 +165,7 @@ runs:
         cat > "$RUNNER_TEMP/bin/spack-bash" <<EOF
         #!/usr/bin/env bash
         source "${{ inputs.ctr-spack-env-path }}/activate.sh"
+        source "${{ inputs.ctr-spack-root }}/share/spack/setup-env.sh"
         exec bash "\$@"
         EOF
         chmod +x "$RUNNER_TEMP/bin/spack-bash"
