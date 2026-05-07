@@ -221,7 +221,7 @@ runs:
         ## Create and configure test environment, or use preinstalled container environment
         if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
           # Remove package and its deps from spack.yaml:
-          for p in ${{ inputs.package-name }} $(spack dependents --transitive ${{ inputs.package-name }}); do
+          for p in ${{ inputs.package-name }} $(spack dependents --installed --transitive ${{ inputs.package-name }}); do
             spack remove $p;
           done
         else
