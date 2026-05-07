@@ -153,18 +153,26 @@ runs:
         path: ${{ inputs.spack-root }}
         color: false
 
+    - name: "Create spack-bash for container runtime"
+      if: steps.detect-runtime.outputs.use-container-env == 'true'
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/bin"
+        cat > "$RUNNER_TEMP/bin/spack-bash" <<EOF
+        #!/usr/bin/env bash
+        source "${{ inputs.ctr-spack-env-path }}/activate.sh"
+        exec bash "\$@"
+        EOF
+        chmod +x "$RUNNER_TEMP/bin/spack-bash"
+        echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
     - name: "Get spack-helpers"
       uses: NOAA-EMC/spack-helpers@develop
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
-      shell: bash
+      shell: spack-bash {0}
       run: |
-        if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
-          source "${{ inputs.ctr-spack-env-path }}/activate.sh"
-        else
-          source "${{ inputs.spack-root }}/share/spack/setup-env.sh"
-        fi
         cp spack-devpkg-${{ inputs.package-name }}/${{ inputs.custom-recipe }} $(spack location --package-dir ${{ inputs.package-name }})/package.py
 
     - name: "Restore repo-level cache"
@@ -183,14 +191,8 @@ runs:
         key: spack-lock-cache-${{ inputs.repo-cache-key-suffix }}
 
     - name: "Do Spack installation and tests"
-      shell: bash
+      shell: spack-bash {0}
       run: |
-        if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
-          source "${{ inputs.ctr-spack-env-path }}/activate.sh"
-        else
-          source "${{ inputs.spack-root }}/share/spack/setup-env.sh"
-        fi
-
         ## Define spack wrapper function
         spack_exe() {
           if [ "$RUNNER_DEBUG" == "1" ]; then
@@ -216,8 +218,6 @@ runs:
 
         ## Create and configure test environment, or use preinstalled container environment
         if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
-          source "${{ inputs.ctr-spack-env-path }}/activate.sh"
-
           # Replace root specs to ensure requested specs are used in the preinstalled environment.
           spack_exe remove --force --all --yes-to-all ${{ inputs.package-name }} || true
           for dep_spec in ${{ inputs.dependents-to-test }}; do
