@@ -17,6 +17,11 @@ does not fail when the `test` and `check` targets do not exist.
 This action can also be used to install only the dependencies of a given package,
 using the `dependencies-only` option.
 
+When running inside a container that already has a Spack environment, this action
+automatically detects the container runtime and uses the preinstalled environment.
+The container environment path is configurable via `spack-env-path` and defaults
+to `/opt/spack-environment`.
+
 This repository supports [NCEPLIBS](https://github.com/NOAA-EMC/NCEPLIBS) CI
 workflows.
 
@@ -75,6 +80,7 @@ for a code to be built and tested as a Spack package:
 | `spack-compiler` | <p>Set spec for Spack compiler (e.g., "gcc@12")</p> | `false` | `gcc` |
 | `parallel-jobs` | <p>Set number of Spack parallel install jobs ("spack install -j/--jobs")</p> | `false` | `2` |
 | `spack-root` | <p>Spack root directory</p> | `false` | `spack-root` |
+| `spack-env-path` | <p>Path to preinstalled Spack environment in container images</p> | `false` | `/opt/spack-environment` |
 | `cache-secret` | <p>Secret for build cache</p> | `false` | `""` |
 | `unique-id` | <p>Unique ID for artifact name</p> | `false` | `""` |
 | `use-repo-cache` | <p>Enable repo-level caching</p> | `false` | `true` |

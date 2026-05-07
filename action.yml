@@ -61,6 +61,10 @@ inputs:
     description: 'Spack root directory'
     required: false
     default: 'spack-root'
+  ctr-spack-env-path:
+    description: 'Path to preinstalled Spack environment in container images'
+    required: false
+    default: '/opt/spack-environment'
   cache-secret:
     description: 'Secret for build cache'
     required: false
@@ -122,7 +126,27 @@ runs:
       run: |
         ln -s ${{ inputs.repo-dir }} spack-devpkg-${{ inputs.package-name }}
 
+    - name: "Detect runtime and Spack setup"
+      id: detect-runtime
+      shell: bash
+      run: |
+        use_container_env=false
+        if [[ -f /.dockerenv || -f /run/.containerenv ]]; then
+          use_container_env=true
+        elif grep -qE '(docker|containerd|kubepods|podman|lxc)' /proc/1/cgroup 2>/dev/null; then
+          use_container_env=true
+        fi
+
+        if [[ "$use_container_env" == true && -f "${{ inputs.ctr-spack-env-path }}/activate.sh" ]]; then
+          echo "Detected container runtime with preinstalled Spack environment at ${{ inputs.ctr-spack-env-path }}"
+          echo "use-container-env=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Using setup-spack action (container env unavailable or not detected)"
+          echo "use-container-env=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: "Get Spack"
+      if: steps.detect-runtime.outputs.use-container-env != 'true'
       uses: spack/setup-spack@v2.1.1
       with:
         ref: ${{ inputs.spack-ref }}
@@ -134,8 +158,13 @@ runs:
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
-      shell: spack-bash {0}
+      shell: bash
       run: |
+        if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
+          source "${{ inputs.ctr-spack-env-path }}/activate.sh"
+        else
+          source "${{ inputs.spack-root }}/share/spack/setup-env.sh"
+        fi
         cp spack-devpkg-${{ inputs.package-name }}/${{ inputs.custom-recipe }} $(spack location --package-dir ${{ inputs.package-name }})/package.py
 
     - name: "Restore repo-level cache"
@@ -150,12 +179,18 @@ runs:
       uses: actions/cache@v4
       if: inputs.cache-spack-lock == 'true'
       with:
-        path: ${{ github.workspace }}/${{ inputs.spack-root }}/spack.lock
+        path: ${{ github.workspace }}/spack.lock
         key: spack-lock-cache-${{ inputs.repo-cache-key-suffix }}
 
     - name: "Do Spack installation and tests"
-      shell: spack-bash {0}
+      shell: bash
       run: |
+        if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
+          source "${{ inputs.ctr-spack-env-path }}/activate.sh"
+        else
+          source "${{ inputs.spack-root }}/share/spack/setup-env.sh"
+        fi
+
         ## Define spack wrapper function
         spack_exe() {
           if [ "$RUNNER_DEBUG" == "1" ]; then
@@ -179,9 +214,21 @@ runs:
         spack_exe mirror list
         spack_exe buildcache list --allarch |& sed 's|^|::debug::|'
 
-        ## Create and configure test environment
-        spack_exe env create --without-view test
-        spack env activate test
+        ## Create and configure test environment, or use preinstalled container environment
+        if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
+          source "${{ inputs.ctr-spack-env-path }}/activate.sh"
+
+          # Replace root specs to ensure requested specs are used in the preinstalled environment.
+          spack_exe remove --force --all --yes-to-all ${{ inputs.package-name }} || true
+          for dep_spec in ${{ inputs.dependents-to-test }}; do
+            dep_name=$(spack python -c "import spack.spec; print(spack.spec.Spec('${dep_spec}').name)")
+            spack_exe remove --force --all --yes-to-all "${dep_name}" || true
+          done
+        else
+          spack_exe env create --without-view test
+          spack env activate test
+        fi
+
         # Point to the modified code
         spack_exe develop --no-clone --path ${GITHUB_WORKSPACE}/spack-devpkg-${{ inputs.package-name }} ${{ inputs.package-name }}@${{ inputs.package-version }}
         spack_exe add ${{ inputs.package-name }}@${{ inputs.package-version }} ${{ inputs.package-variants }} ${{ inputs.dependents-to-test }}
@@ -212,8 +259,8 @@ runs:
         spack_exe filter-compilers ${{ inputs.spack-compiler }} $alsogcc --keep-only
 
         ## Restore cached lock file if available
-        if [[ "${{ inputs.cache-spack-lock }}" == true && -f $SPACK_ROOT/spack.lock ]]; then
-          cp ${{ inputs.spack-root }}/spack.lock $SPACK_ENV/.
+        if [[ "${{ inputs.cache-spack-lock }}" == true && -f "${GITHUB_WORKSPACE}/spack.lock" ]]; then
+          cp "${GITHUB_WORKSPACE}/spack.lock" "$SPACK_ENV/."
         fi
 
         # Print spack.yaml
@@ -222,13 +269,17 @@ runs:
         echo "========="
 
         ## Concretize the environment
-        spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        if ! spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log; then
+          cat ${GITHUB_WORKSPACE}/spack-concretize-err.log
+          echo "Initial concretization failed; retrying with force (-f)."
+          spack_exe concretize -f 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
+        fi
         cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
 
         ## Validate configuration
         spack_exe validate compilers ${{ inputs.spack-compiler }}
-        if [[ "${{ inputs.cache-spack-lock }}" == true ]]; then
-          cp $SPACK_ENV/spack.lock ${{ inputs.spack-root }}/.
+        if [[ "${{ inputs.cache-spack-lock }}" == true && -f "$SPACK_ENV/spack.lock" ]]; then
+          cp "$SPACK_ENV/spack.lock" "${GITHUB_WORKSPACE}/spack.lock"
         fi
 
         ## Install, including running install-time tests ('make test' etc.)
