@@ -298,7 +298,7 @@ runs:
 
         ## Cache built packages and verify the package loads
         if [[ "${{ inputs.use-repo-cache }}" == true  && "${{ inputs.package-only }}" == "false" ]]; then
-          spack_exe buildcache push --with-build-dependencies --update-index --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }}
+          spack_exe buildcache push --with-build-dependencies --update-index --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }} || true
         fi
         if [[ ${{ inputs.test-package-load }} == true && "${{ inputs.dependencies-only }}" == "false" ]]; then
           spack_exe load ${{ inputs.package-name }}
