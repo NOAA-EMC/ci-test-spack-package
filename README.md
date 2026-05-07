@@ -83,7 +83,7 @@ for a code to be built and tested as a Spack package:
 | `spack-env-path` | <p>Path to preinstalled Spack environment in container images</p> | `false` | `/opt/spack-environment` |
 | `cache-secret` | <p>Secret for build cache</p> | `false` | `""` |
 | `unique-id` | <p>Unique ID for artifact name</p> | `false` | `""` |
-| `use-repo-cache` | <p>Enable repo-level caching</p> | `false` | `true` |
+| `use-repo-cache` | <p>Enable repo-level caching (true, false, or auto)</p> | `false` | `auto` |
 | `repo-cache-key-suffix` | <p>String to append to repo-level cache key</p> | `false` | `1` |
 | `repo-save-key-suffix` | <p>Save a repo-level cache entry different from the restored one</p> | `false` | `""` |
 | `cache-spack-lock` | <p>Cache spack.lock to speed up concretization</p> | `false` | `true` |
@@ -98,6 +98,9 @@ for a code to be built and tested as a Spack package:
 In order to use the repo-level caching of compiled packages, `permissions:actions:write`
 must be set at the job level (this enables an existing cache to be deleted and
 overwritten).
+
+When `use-repo-cache` is set to `auto` (the default), this action disables
+repo-level caching in containers and enables it otherwise.
 
 ## Disclaimer
 

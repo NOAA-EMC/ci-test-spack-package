@@ -76,9 +76,8 @@ inputs:
     description: 'Unique ID for artifact name'
     required: false
   use-repo-cache:
-    description: 'Enable repo-level caching'
-    default: true
-    type: boolean
+    description: 'Enable repo-level caching (true, false, or auto)'
+    default: 'auto'
   repo-cache-key-suffix:
     description: 'String to append to repo-level cache key'
     default: 1
@@ -135,11 +134,35 @@ runs:
       shell: bash
       run: |
         use_container_env=false
+        use_repo_cache_input='${{ inputs.use-repo-cache }}'
+        use_repo_cache=true
         if [[ -f /.dockerenv || -f /run/.containerenv ]]; then
           use_container_env=true
         elif grep -qE '(docker|containerd|kubepods|podman|lxc)' /proc/1/cgroup 2>/dev/null; then
           use_container_env=true
         fi
+
+        case "$use_repo_cache_input" in
+          true|false)
+            use_repo_cache="$use_repo_cache_input"
+            ;;
+          auto|"")
+            if [[ "$use_container_env" == true ]]; then
+              use_repo_cache=false
+              echo "Container runtime detected: repo-level cache defaulting to disabled"
+            else
+              use_repo_cache=true
+            fi
+            ;;
+          *)
+            echo "::warning::Invalid use-repo-cache value '$use_repo_cache_input'; expected true, false, or auto. Using auto."
+            if [[ "$use_container_env" == true ]]; then
+              use_repo_cache=false
+            else
+              use_repo_cache=true
+            fi
+            ;;
+        esac
 
         if [[ "$use_container_env" == true && -f "${{ inputs.ctr-spack-env-path }}/activate.sh" ]]; then
           echo "Detected container runtime with preinstalled Spack environment at ${{ inputs.ctr-spack-env-path }}"
@@ -148,6 +171,7 @@ runs:
           echo "Using setup-spack action (container env unavailable or not detected)"
           echo "use-container-env=false" >> "$GITHUB_OUTPUT"
         fi
+        echo "use-repo-cache=$use_repo_cache" >> "$GITHUB_OUTPUT"
 
     - name: "Get Spack"
       if: steps.detect-runtime.outputs.use-container-env != 'true'
@@ -183,7 +207,7 @@ runs:
     - name: "Restore repo-level cache"
       uses: actions/cache/restore@v4
       id: restore-repo-cache
-      if: inputs.use-repo-cache == 'true'
+      if: steps.detect-runtime.outputs.use-repo-cache == 'true'
       with:
         path: ${{ github.workspace }}/spack-build-cache
         key: repo-cache-${{ inputs.repo-cache-key-suffix }}
@@ -210,7 +234,7 @@ runs:
         }
 
         ## Setup build caches and mirrors
-        if [ "${{ inputs.use-repo-cache }}" == true ]; then
+        if [ "${{ steps.detect-runtime.outputs.use-repo-cache }}" == true ]; then
           spack_exe mirror add repo-build-cache $GITHUB_WORKSPACE/spack-build-cache
         fi
         if [ "${{ inputs.use-common-build-cache }}" == true ]; then
@@ -302,7 +326,7 @@ runs:
         set -e
 
         ## Cache built packages and verify the package loads
-        if [[ "${{ inputs.use-repo-cache }}" == true  && "${{ inputs.package-only }}" == "false" ]]; then
+        if [[ "${{ steps.detect-runtime.outputs.use-repo-cache }}" == true  && "${{ inputs.package-only }}" == "false" ]]; then
           spack_exe buildcache push --with-build-dependencies --update-index --unsigned --only dependencies $GITHUB_WORKSPACE/spack-build-cache ${{ inputs.package-name }} || true
         fi
         if [[ ${{ inputs.test-package-load }} == true && "${{ inputs.dependencies-only }}" == "false" ]]; then
@@ -312,7 +336,7 @@ runs:
 
     - name: "Save repo-level cache"
       uses: actions/cache/save@v4
-      if: always() && inputs.use-repo-cache == 'true' && ( steps.restore-repo-cache.outputs.cache-hit != 'true' || inputs.repo-save-key-suffix != '' ) && inputs.save-repo-cache == 'true'
+      if: always() && steps.detect-runtime.outputs.use-repo-cache == 'true' && ( steps.restore-repo-cache.outputs.cache-hit != 'true' || inputs.repo-save-key-suffix != '' ) && inputs.save-repo-cache == 'true'
       with:
         path: ${{ github.workspace }}/spack-build-cache
         key: repo-cache-${{ inputs.repo-cache-key-suffix }}${{ inputs.repo-save-key-suffix }}
