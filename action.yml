@@ -331,10 +331,20 @@ runs:
         name: spack-package-test-artifacts-${{ env.uniqid }}
         path: |
           ${{ github.workspace }}/${{ inputs.spack-root }}/var/spack/environments/test/spack.yaml
+          ${{ inputs.ctr-spack-env-path }}/spack.yaml
+          ${{ inputs.ctr-spack-env-path }}/var/spack/environments/*/spack.yaml
           ${{ github.workspace }}/spack-concretize-out.log
           ${{ github.workspace }}/spack-concretize-err.log
           ${{ github.workspace }}/${{ inputs.spack-root }}/var/spack/environments/test/${{ inputs.package-name }}/spack-build-*/Testing/Temporary/LastTest.log
           /tmp/runner/spack-stage/spack-stage-*/spack-build-out.txt
+          /tmp/spack-stage/spack-stage-*/spack-build-out.txt
+          ${{ inputs.ctr-spack-env-path }}/var/spack/stage/spack-stage-*/spack-build-out.txt
           /tmp/runner/spack-stage/spack-stage-*/install-time-test-log.txt
+          /tmp/spack-stage/spack-stage-*/install-time-test-log.txt
+          ${{ inputs.ctr-spack-env-path }}/var/spack/stage/spack-stage-*/install-time-test-log.txt
           /tmp/runner/spack-stage/spack-stage-*/spack-build-*/Testing/Temporary/LastTest.log
+          /tmp/spack-stage/spack-stage-*/spack-build-*/Testing/Temporary/LastTest.log
+          ${{ inputs.ctr-spack-env-path }}/var/spack/stage/spack-stage-*/spack-build-*/Testing/Temporary/LastTest.log
           /tmp/runner/spack-stage/spack-stage-*/spack-build-*/FV3/ccpp/ccpp_prebuild.*
+          /tmp/spack-stage/spack-stage-*/spack-build-*/FV3/ccpp/ccpp_prebuild.*
+          ${{ inputs.ctr-spack-env-path }}/var/spack/stage/spack-stage-*/spack-build-*/FV3/ccpp/ccpp_prebuild.*
