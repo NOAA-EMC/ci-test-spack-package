@@ -218,11 +218,9 @@ runs:
 
         ## Create and configure test environment, or use preinstalled container environment
         if [[ "${{ steps.detect-runtime.outputs.use-container-env }}" == "true" ]]; then
-          # Replace root specs to ensure requested specs are used in the preinstalled environment.
-          spack_exe remove --force --all --yes-to-all ${{ inputs.package-name }} || true
-          for dep_spec in ${{ inputs.dependents-to-test }}; do
-            dep_name=$(spack python -c "import spack.spec; print(spack.spec.Spec('${dep_spec}').name)")
-            spack_exe remove --force --all --yes-to-all "${dep_name}" || true
+          # Remove package and its deps from spack.yaml:
+          for p in ${{ inputs.package_name }} $(spack dependents --transitive ${{ inputs.package-name }}); do
+            spack remove $p;
           done
         else
           spack_exe env create --without-view test
@@ -269,11 +267,7 @@ runs:
         echo "========="
 
         ## Concretize the environment
-        if ! spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log; then
-          cat ${GITHUB_WORKSPACE}/spack-concretize-err.log
-          echo "Initial concretization failed; retrying with force (-f)."
-          spack_exe concretize -f 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
-        fi
+        spack_exe concretize 2> ${GITHUB_WORKSPACE}/spack-concretize-err.log 1> ${GITHUB_WORKSPACE}/spack-concretize-out.log
         cat ${GITHUB_WORKSPACE}/spack-concretize-out.log
 
         ## Validate configuration
@@ -289,7 +283,12 @@ runs:
         if [ "${{ inputs.package-only }}" == "true" ]; then onlyflag="--use-buildcache dependencies:only"; fi
         if [ "${{ inputs.no-cached-roots }}" == "true" ]; then cacheflag="--use-buildcache package:never"; fi
 
-        spack_exe install --jobs ${{ inputs.parallel-jobs }} ${{ inputs.spack-test-flag }} --no-check-signature $verboseflag $onlyflag $cacheflag
+        spack_exe install \
+          --jobs ${{ inputs.parallel-jobs }} \
+          ${{ inputs.spack-test-flag }} \
+          --no-check-signature \
+          $verboseflag $onlyflag $cacheflag \
+          ${{ inputs.package-name }} ${{ inputs.dependents-to-test }}
 
         rc=$?
         set -e
