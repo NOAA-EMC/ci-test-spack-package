@@ -171,11 +171,12 @@ runs:
         fi
         if [ "${{ inputs.use-common-build-cache }}" == true ]; then
           spack_exe mirror add emc-common-build-cache oci://ghcr.io/NOAA-EMC/ci-common-build-cache
-          spack_exe mirror add emc-common-build-cache-B oci://ghcr.io/NOAA-EMC/ci-common-build-cache-B
+          compiler_name=$(echo ${{ inputs.spack-compiler }} | sed 's:@.*::')
+          spack_exe mirror add emc-common-build-cache-compiler oci://ghcr.io/NOAA-EMC/ci-common-build-cache-$compiler_name
           export OCIUSER=NOAA-EMC
           export OCIPASSWORD="${{ github.token }}"
           spack_exe mirror set --oci-username OCIUSER --oci-password-variable OCIPASSWORD emc-common-build-cache
-          spack_exe mirror set --oci-username OCIUSER --oci-password-variable OCIPASSWORD emc-common-build-cache-B
+          spack_exe mirror set --oci-username OCIUSER --oci-password-variable OCIPASSWORD emc-common-build-cache-$compiler_name
         fi
         spack_exe mirror remove github-actions-buildcache
         spack_exe mirror list
