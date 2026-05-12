@@ -176,7 +176,7 @@ runs:
           export OCIUSER=NOAA-EMC
           export OCIPASSWORD="${{ github.token }}"
           spack_exe mirror set --oci-username OCIUSER --oci-password-variable OCIPASSWORD emc-common-build-cache
-          spack_exe mirror set --oci-username OCIUSER --oci-password-variable OCIPASSWORD emc-common-build-cache-$compiler_name
+          spack_exe mirror set --oci-username OCIUSER --oci-password-variable OCIPASSWORD emc-common-build-cache-compiler
         fi
         spack_exe mirror remove github-actions-buildcache
         spack_exe mirror list
