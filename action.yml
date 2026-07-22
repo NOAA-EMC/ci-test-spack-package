@@ -130,7 +130,7 @@ runs:
         color: false
 
     - name: "Get spack-helpers"
-      uses: NOAA-EMC/spack-helpers@27e2c2486efe4c7d6c97fa8db5c5fca4a85bd04d
+      uses: NOAA-EMC/spack-helpers@07cfd1318cc18866e09f6267e889cf0b3be5a30c
 
     - name: "Update recipe (if needed)"
       if: inputs.custom-recipe != 'none'
